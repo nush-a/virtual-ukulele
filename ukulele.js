@@ -147,7 +147,7 @@ for (let stringData of ukuleleData) {
 const overlay = document.createElement("div")
 overlay.style.position = "absolute"
 overlay.style.border = "2px solid black"
-overlay.style.pointerEvents = "auto" // so mouse events register
+overlay.style.pointerEvents = "none" // so mouse events register
 overlay.style.height = "30px" // adjust to cover buttons
 overlay.style.top = ukuleleDiv.offsetTop + "px"
 overlay.style.backgroundColor = "rgba(0,0,0,0.05)" // slight tint for visibility
