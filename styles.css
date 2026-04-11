@@ -1,0 +1,126 @@
+body {
+  font-family: sans-serif;
+}
+
+/* Fretboard container */
+.fretboard {
+  background-image: url("wood-grain.jpg");
+  background-size: cover;
+  background-position: center;
+  padding: 15px;
+  display: inline-block;
+  position: relative;
+}
+
+/* Each string (row) */
+.string {
+  display: flex;
+  position: relative;
+  height: 40px;
+}
+
+/* The string line */
+.string::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ffffff;
+  transform: translateY(-50%);
+  display: block;
+}
+
+/* Each fret */
+.fret {
+  width: 45px;
+  height: 100%;
+  border-right: 3px solid #eae6d276; /* fret wire */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Optional: note text */
+.fret span {
+  font-size: 10px;
+  color: #000000;
+}
+
+/* Hover effect */
+.fret:hover {
+  background: rgba(255, 255, 255, 0.368);
+}
+
+.active-fret {
+  background: rgba(255, 255, 255, 0.368);
+}
+
+@keyframes vibrate {
+  0% {
+    transform: translateY(0px);
+  }
+  20% {
+    transform: translateY(4px);
+  }
+  40% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(3px);
+  }
+  80% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.vibrating::before {
+  animation: vibrate 0.2s linear;
+}
+
+.dot-fret {
+  position: relative;
+}
+
+.dot-fret::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.note-label {
+  font-family: "OpenDyslexic", Verdana, sans-serif;
+  color: black;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 20px;
+
+  border-radius: 50%; /* makes circle */
+
+  background-color: rgb(255, 255, 0); /* yellow, 50% opacity */
+
+  font-size: 12px;
+  font-weight: bold;
+
+  pointer-events: none; /* prevents blocking clicks on fret */
+}
+
+.hide-labels .note-label {
+  display: none;
+}

@@ -108,39 +108,59 @@ const ukuleleData = [
 ]
 
 // each row of keys, will map to one row of ukulele notes
+//note: need to fix the fact that i don't have twelve characters per row. either add in enter and shift keys, or reduce window to ten.
 const keyRows = [
-  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="],
-  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]"],
-  ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"],
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"],
   ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"],
 ]
 
 let windowStart = 0
-const windowSize = 12
+const windowSize = 10
+const activeKeys = {} //stores wheter a key is currently pressed or not
 const buttonGrid = [] // 2D array to store all buttons
 const ukuleleDiv = document.getElementById("ukulele")
+//button toggle for frets labels
+const toggleBtn = document.getElementById("toggleLabels")
 
-for (let stringData of ukuleleData) {
-  //loops through each string
+for (let rowIndex = 0; rowIndex < ukuleleData.length; rowIndex++) {
+  const stringData = ukuleleData[rowIndex] //loops through each uke string
+
   const stringRow = document.createElement("div") //creates a visual html container for this string
-  stringRow.style.marginBottom = "5px"
+  stringRow.classList.add("string") //gives styling with the css class string
+
   const rowButtons = [] //logical container of button data for this row
 
-  for (let note of stringData.notes) {
-    //loops through each note in string
-    const button = document.createElement("button") //creates a new button element in memory
-    button.textContent = note //displays note name
-    button.style.marginRight = "2px"
-    // Add click listener to play the note
-    button.addEventListener("click", function () {
-      // Resume audio context if suspended
+  for (let i = 0; i < stringData.notes.length; i++) {
+    const note = stringData.notes[i] //loops through each note in string
+
+    const fret = document.createElement("div") //creates a new fret element in memory
+    fret.classList.add("fret") //adds styling via css class fret
+
+    //labelling frets with their note names
+    const label = document.createElement("span") //adds a text container to put note names in
+    label.textContent = note //makes sure note is the text inside label
+    label.classList.add("note-label") //creates a css class for the label styling
+    fret.appendChild(label) //label is added inside the fret div
+    // add dot on specific frets (only on one row)
+    if (i === 5 || i === 7 || i === 10 || i === 12) {
+      //adds dots on spcific frets like a real ukulele's markings
+      if (rowIndex === 1) {
+        fret.classList.add("dot-fret")
+      }
+    }
+    //add click listener to play a note
+    fret.addEventListener("click", () => {
       playNote(stringData.string, note, stringData.technique)
+      vibrateString(rowIndex)
     })
-    rowButtons.push(button) //adds the button to rowButtons array
-    stringRow.appendChild(button) //visually adds button to screen
+
+    rowButtons.push(fret) //adds the fret to rowButtons array
+    stringRow.appendChild(fret) //visually adds fret to screen
   }
 
-  buttonGrid.push(rowButtons) //ads this rows button array into the main buttonGrid
+  buttonGrid.push(rowButtons) //ads this rows fret/button array into the main buttonGrid
   ukuleleDiv.appendChild(stringRow) //adds the whole row to the page visibly
 }
 
@@ -150,7 +170,7 @@ overlay.style.border = "2px solid black"
 overlay.style.pointerEvents = "none" // so mouse events register
 overlay.style.height = "30px" // adjust to cover buttons
 overlay.style.top = ukuleleDiv.offsetTop + "px"
-overlay.style.backgroundColor = "rgba(0,0,0,0.05)" // slight tint for visibility
+overlay.style.backgroundColor = "rgba(219, 241, 243, 0.42)" // slight tint for visibility
 document.body.appendChild(overlay)
 
 function playNote(stringLabel, note, technique) {
@@ -186,8 +206,21 @@ function updateOverlay() {
   overlay.style.height = firstButton.offsetHeight * 4 + 10 + "px" // cover all 4 strings
 }
 
+//highlights fret when note is pressed on keyboard
+function highlightFret(rowIndex, noteIndex) {
+  const fret = buttonGrid[rowIndex][noteIndex]
+
+  if (!fret) return
+
+  fret.classList.add("active-fret")
+}
+
 function handleKeyPress(event) {
   const key = event.key.toLowerCase()
+
+  if (activeKeys[key]) return // prevents repeat spam while holding
+
+  activeKeys[key] = true
 
   for (let rowIndex = 0; rowIndex < keyRows.length; rowIndex++) {
     //Loops through each keyboard row (4 total).
@@ -204,13 +237,53 @@ function handleKeyPress(event) {
       const note = visibleNotes[keyIndex]
 
       if (note) {
+        const actualIndex = windowStart + keyIndex
         playNote(stringData.string, note, stringData.technique)
+        highlightFret(rowIndex, actualIndex)
+        vibrateString(rowIndex)
       }
     }
   }
 }
 
+function vibrateString(rowIndex) {
+  const stringRow = ukuleleDiv.children[rowIndex]
+
+  if (!stringRow) return
+
+  stringRow.classList.add("vibrating")
+
+  // remove class so animation can trigger again next time
+  setTimeout(() => {
+    stringRow.classList.remove("vibrating")
+  }, 200)
+}
+
+toggleBtn.addEventListener("click", () => {
+  ukuleleDiv.classList.toggle("hide-labels")
+})
+
 document.addEventListener("keydown", handleKeyPress) //Adds a global listener for keyboard input.
+
+document.addEventListener("keyup", (event) => {
+  //listener for key up
+  const key = event.key.toLowerCase()
+  activeKeys[key] = false
+
+  //this block converts: keyboard key to position in visible window to real fret to actual UI element
+  for (let rowIndex = 0; rowIndex < keyRows.length; rowIndex++) {
+    const keyIndex = keyRows[rowIndex].indexOf(key)
+
+    if (keyIndex !== -1) {
+      const actualIndex = windowStart + keyIndex
+      const fret = buttonGrid[rowIndex][actualIndex]
+
+      if (fret) {
+        fret.classList.remove("active-fret")
+      }
+    }
+  }
+})
 
 let isDragging = false //tracks whether user is currently dragging mouse
 let startX = 0 //stores x position where drag started
