@@ -7,7 +7,21 @@
   </head>
   <body>
     <h1>Virtual Low G Ukulele</h1>
-    <div id="ukulele" class="fretboard"></div>
+    <h2>
+      How to play: the four rows of your keyboard are the four ukulele strings.
+      1, Q, A, and Z are your open strings. Move the window to play more notes.
+      You can also click. Press the toggle button to hide/show note names for
+      each fret.
+    </h2>
+    <div class="ukulele">
+      <div id="ukulele" class="fretboard"></div>
+      <div id="uke-body" class="ukulele-body">
+        <div class="body-string" data-row="0"></div>
+        <div class="body-string" data-row="1"></div>
+        <div class="body-string" data-row="2"></div>
+        <div class="body-string" data-row="3"></div>
+      </div>
+    </div>
     <button id="toggleLabels">Toggle Note Names</button>
     <div id="windowOverlay"></div>
 

@@ -108,7 +108,7 @@ body {
   align-items: center;
   justify-content: center;
 
-  width: 28px;
+  width: 24px;
   height: 20px;
 
   border-radius: 50%; /* makes circle */
@@ -123,4 +123,37 @@ body {
 
 .hide-labels .note-label {
   display: none;
+}
+.ukulele-body {
+  background-image: url("uke-body.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  width: 450px;
+  height: 520px; /* 4 strings × 40px */
+  position: relative;
+}
+.body-string {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40px;
+  cursor: pointer;
+}
+
+.body-string:nth-child(1) {
+  top: 0px;
+}
+.body-string:nth-child(2) {
+  top: 40px;
+}
+.body-string:nth-child(3) {
+  top: 80px;
+}
+.body-string:nth-child(4) {
+  top: 120px;
+}
+
+.ukulele {
+  display: flex;
+  align-items: center; /* aligns strings vertically */
 }

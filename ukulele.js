@@ -110,14 +110,14 @@ const ukuleleData = [
 // each row of keys, will map to one row of ukulele notes
 //note: need to fix the fact that i don't have twelve characters per row. either add in enter and shift keys, or reduce window to ten.
 const keyRows = [
-  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-  ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";"],
-  ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"],
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+  ["z", "x", "c", "v", "b", "n", "m", ",", "."],
 ]
 
 let windowStart = 0
-const windowSize = 10
+const windowSize = 9
 const activeKeys = {} //stores wheter a key is currently pressed or not
 const buttonGrid = [] // 2D array to store all buttons
 const ukuleleDiv = document.getElementById("ukulele")
@@ -132,7 +132,7 @@ for (let rowIndex = 0; rowIndex < ukuleleData.length; rowIndex++) {
 
   const rowButtons = [] //logical container of button data for this row
 
-  for (let i = 0; i < stringData.notes.length; i++) {
+  for (let i = 1; i < stringData.notes.length; i++) {
     const note = stringData.notes[i] //loops through each note in string
 
     const fret = document.createElement("div") //creates a new fret element in memory
@@ -143,6 +143,13 @@ for (let rowIndex = 0; rowIndex < ukuleleData.length; rowIndex++) {
     label.textContent = note //makes sure note is the text inside label
     label.classList.add("note-label") //creates a css class for the label styling
     fret.appendChild(label) //label is added inside the fret div
+    //frets get smaller as they get higher up to look like  real instrument.
+    const scaleLength = 1100 // arbitrary total length in px
+    const fretPosition = scaleLength - scaleLength / Math.pow(2, i / 12)
+    const prevPosition = scaleLength - scaleLength / Math.pow(2, (i - 1) / 12)
+    const width = fretPosition - prevPosition
+    fret.style.width = width + "px"
+
     // add dot on specific frets (only on one row)
     if (i === 5 || i === 7 || i === 10 || i === 12) {
       //adds dots on spcific frets like a real ukulele's markings
@@ -239,7 +246,7 @@ function handleKeyPress(event) {
       if (note) {
         const actualIndex = windowStart + keyIndex
         playNote(stringData.string, note, stringData.technique)
-        highlightFret(rowIndex, actualIndex)
+        highlightFret(rowIndex, actualIndex - 1)
         vibrateString(rowIndex)
       }
     }
@@ -276,7 +283,7 @@ document.addEventListener("keyup", (event) => {
 
     if (keyIndex !== -1) {
       const actualIndex = windowStart + keyIndex
-      const fret = buttonGrid[rowIndex][actualIndex]
+      const fret = buttonGrid[rowIndex][actualIndex - 1]
 
       if (fret) {
         fret.classList.remove("active-fret")
@@ -295,7 +302,17 @@ document.addEventListener("mousedown", (e) => {
     startX = e.clientX
   }
 }) //listens for when mouse is pressed
+document.querySelectorAll(".body-string").forEach((el) => {
+  el.addEventListener("click", () => {
+    const rowIndex = Number(el.dataset.row)
+    const stringData = ukuleleData[rowIndex]
 
+    const openNote = stringData.notes[0]
+
+    playNote(stringData.string, openNote, stringData.technique)
+    vibrateString(rowIndex)
+  })
+})
 document.addEventListener("mouseup", () => {
   isDragging = false
 }) //listens for when mouse is released
