@@ -1,5 +1,10 @@
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+const sampleCache = {}
+let samplesReady = false
 
+const loadingScreen = document.getElementById("loadingScreen")
+const progressText = document.getElementById("progressText")
+const app = document.getElementById("ukuleleApp")
 const ukuleleData = [
   {
     string: "S1",
@@ -106,6 +111,56 @@ const ukuleleData = [
     technique: "normal",
   },
 ]
+const sampleList = []
+
+for (let s of ukuleleData) {
+  for (let note of s.notes) {
+    sampleList.push({
+      string: s.string,
+      note,
+      technique: s.technique,
+      key: `${s.string}_${note}_${s.technique}`,
+    })
+  }
+}
+
+async function loadAllSamples() {
+  const total = sampleList.length
+  let loaded = 0
+
+  for (const sample of sampleList) {
+    const res = await fetch(`samples/${sample.key}.mp3`)
+    const arrayBuffer = await res.arrayBuffer()
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+
+    sampleCache[sample.key] = audioBuffer
+
+    loaded++
+    const percent = Math.floor((loaded / total) * 100)
+
+    progressText.textContent = `${percent}%`
+  }
+}
+function showApp() {
+  loadingScreen.style.display = "none"
+  app.style.display = "block"
+
+  requestAnimationFrame(() => {
+    updateOverlay()
+  })
+}
+async function init() {
+  loadingScreen.style.display = "flex"
+  app.style.display = "none"
+
+  await loadAllSamples()
+
+  samplesReady = true
+
+  showApp()
+}
+
+init()
 
 // each row of keys, will map to one row of ukulele notes
 //note: need to fix the fact that i don't have twelve characters per row. either add in enter and shift keys, or reduce window to ten.
@@ -192,54 +247,93 @@ function getNoteIndex(rowIndex, idx) {
   return windowStart + idx
 }
 
+// function playNote(stringLabel, note, technique) {
+//   // resume AudioContext if suspended
+//   if (audioCtx.state === "suspended") {
+//     audioCtx.resume()
+//   }
+//   //reads file paths of samples
+//   const filePath = `samples/${stringLabel}_${note}_${technique}.mp3`
+//   //fetch the audio file
+//   fetch(filePath)
+//     .then((r) => r.arrayBuffer()) // get raw data
+//     .then((buffer) => audioCtx.decodeAudioData(buffer)) // decode MP3 into audio buffer
+//     .then((audioBuffer) => {
+//       const now = audioCtx.currentTime
+
+//       // fade out previous note on this string
+//       if (activeSources[stringLabel]) {
+//         const { source, gain } = activeSources[stringLabel]
+
+//         try {
+//           gain.gain.cancelScheduledValues(now)
+//           gain.gain.setValueAtTime(gain.gain.value, now)
+//           gain.gain.linearRampToValueAtTime(0, now + 0.4)
+
+//           //source.stop(now + 0.02)
+//           source.stop(now + 0.4)
+//         } catch (e) {}
+//       }
+
+//       // create new source + gain
+//       const source = audioCtx.createBufferSource()
+//       const gainNode = audioCtx.createGain()
+
+//       source.buffer = audioBuffer
+
+//       // start at full volume
+//       gainNode.gain.setValueAtTime(1, now)
+
+//       source.connect(gainNode)
+//       gainNode.connect(audioCtx.destination)
+
+//       source.start()
+//       // store this as the current active source for the string
+//       activeSources[stringLabel] = {
+//         source,
+//         gain: gainNode,
+//       }
+//     })
+//     .catch((err) => console.error("Error loading audio:", err))
+// }
+
 function playNote(stringLabel, note, technique) {
-  // resume AudioContext if suspended
+  if (!samplesReady) return
+
   if (audioCtx.state === "suspended") {
     audioCtx.resume()
   }
-  //reads file paths of samples
-  const filePath = `samples/${stringLabel}_${note}_${technique}.mp3`
-  //fetch the audio file
-  fetch(filePath)
-    .then((r) => r.arrayBuffer()) // get raw data
-    .then((buffer) => audioCtx.decodeAudioData(buffer)) // decode MP3 into audio buffer
-    .then((audioBuffer) => {
-      const now = audioCtx.currentTime
 
-      // fade out previous note on this string
-      if (activeSources[stringLabel]) {
-        const { source, gain } = activeSources[stringLabel]
+  const key = `${stringLabel}_${note}_${technique}`
+  const audioBuffer = sampleCache[key]
 
-        try {
-          gain.gain.cancelScheduledValues(now)
-          gain.gain.setValueAtTime(gain.gain.value, now)
-          gain.gain.linearRampToValueAtTime(0, now + 0.4)
+  if (!audioBuffer) return
 
-          //source.stop(now + 0.02)
-          source.stop(now + 0.4)
-        } catch (e) {}
-      }
+  const now = audioCtx.currentTime
 
-      // create new source + gain
-      const source = audioCtx.createBufferSource()
-      const gainNode = audioCtx.createGain()
+  if (activeSources[stringLabel]) {
+    const { source, gain } = activeSources[stringLabel]
 
-      source.buffer = audioBuffer
+    try {
+      gain.gain.cancelScheduledValues(now)
+      gain.gain.setValueAtTime(gain.gain.value, now)
+      gain.gain.linearRampToValueAtTime(0, now + 0.02)
+      source.stop(now + 0.02)
+    } catch (e) {}
+  }
 
-      // start at full volume
-      gainNode.gain.setValueAtTime(1, now)
+  const source = audioCtx.createBufferSource()
+  const gainNode = audioCtx.createGain()
 
-      source.connect(gainNode)
-      gainNode.connect(audioCtx.destination)
+  source.buffer = audioBuffer
+  gainNode.gain.setValueAtTime(1, now)
 
-      source.start()
-      // store this as the current active source for the string
-      activeSources[stringLabel] = {
-        source,
-        gain: gainNode,
-      }
-    })
-    .catch((err) => console.error("Error loading audio:", err))
+  source.connect(gainNode)
+  gainNode.connect(audioCtx.destination)
+
+  source.start()
+
+  activeSources[stringLabel] = { source, gain: gainNode }
 }
 
 function updateOverlay() {
