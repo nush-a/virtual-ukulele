@@ -1,10 +1,11 @@
 body {
   font-family: sans-serif;
+  margin: 0;
+  overflow-x: auto;
 }
 
 /* Fretboard container */
 .fretboard {
-  /* background-image: url("wood-grain.jpg");*/
   background-size: cover;
   background-position: center;
   background: #38180e;
@@ -12,6 +13,7 @@ body {
   padding: 15px;
   display: inline-block;
   position: relative;
+  flex-shrink: 0;
 }
 
 /* Each string (row) */
@@ -38,7 +40,7 @@ body {
 .fret {
   width: 45px;
   height: 100%;
-  border-right: 3px solid #eae6d276; /* fret wire */
+  border-left: 3px solid #eae6d276; /* fret wire */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -133,6 +135,7 @@ body {
   width: 450px;
   height: 520px; /* 4 strings × 40px */
   position: relative;
+  flex-shrink: 0;
 }
 .body-string {
   position: absolute;
@@ -143,21 +146,22 @@ body {
 }
 
 .body-string:nth-child(1) {
-  top: 160px;
+  top: 170px;
 }
 .body-string:nth-child(2) {
-  top: 200px;
+  top: 210px;
 }
 .body-string:nth-child(3) {
-  top: 240px;
+  top: 250px;
 }
 .body-string:nth-child(4) {
-  top: 280px;
+  top: 290px;
 }
 
 .ukulele {
   display: flex;
   align-items: center; /* aligns strings vertically */
+  width: max-content;
 }
 #loadingScreen {
   position: fixed;

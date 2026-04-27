@@ -229,6 +229,9 @@ for (let rowIndex = 0; rowIndex < ukuleleData.length; rowIndex++) {
   ukuleleDiv.appendChild(stringRow) //adds the whole row to the page visibly
 }
 
+// requestAnimationFrame(() => {
+//   drawContinuousStrings()
+// })
 //window overlay
 const overlay = document.createElement("div")
 overlay.style.position = "absolute"
@@ -349,6 +352,25 @@ function updateOverlay() {
   overlay.style.height = firstButton.offsetHeight * 4 + 10 + "px" // cover all 4 strings
 }
 
+// function drawContinuousStrings() {
+//   const overlay = document.getElementById("stringOverlay")
+//   overlay.innerHTML = ""
+
+//   const strings = document.querySelectorAll(".string")
+//   const ukeRect = document.querySelector(".ukulele").getBoundingClientRect()
+
+//   strings.forEach((str, i) => {
+//     const rect = str.getBoundingClientRect()
+
+//     const line = document.createElement("div")
+//     line.classList.add("string-line")
+
+//     line.style.top = rect.top - ukeRect.top + rect.height / 2 + "px"
+//     line.style.width = ukeRect.width + "px"
+
+//     overlay.appendChild(line)
+//   })
+// }
 //highlights fret when note is pressed on keyboard
 function highlightFret(rowIndex, noteIndex) {
   const fret = buttonGrid[rowIndex][noteIndex - 1]
@@ -476,6 +498,8 @@ document.querySelectorAll(".body-string").forEach((el) => {
 document.addEventListener("mouseup", () => {
   isDragging = false
 }) //listens for when mouse is released
+
+//window.addEventListener("resize", drawContinuousStrings)
 
 document.addEventListener("mousemove", (e) => {
   if (!isDragging) return //only proceeds if user is currently dragging
