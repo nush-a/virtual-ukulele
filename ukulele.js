@@ -229,9 +229,6 @@ for (let rowIndex = 0; rowIndex < ukuleleData.length; rowIndex++) {
   ukuleleDiv.appendChild(stringRow) //adds the whole row to the page visibly
 }
 
-// requestAnimationFrame(() => {
-//   drawContinuousStrings()
-// })
 //window overlay
 const overlay = document.createElement("div")
 overlay.style.position = "absolute"
@@ -352,25 +349,6 @@ function updateOverlay() {
   overlay.style.height = firstButton.offsetHeight * 4 + 10 + "px" // cover all 4 strings
 }
 
-// function drawContinuousStrings() {
-//   const overlay = document.getElementById("stringOverlay")
-//   overlay.innerHTML = ""
-
-//   const strings = document.querySelectorAll(".string")
-//   const ukeRect = document.querySelector(".ukulele").getBoundingClientRect()
-
-//   strings.forEach((str, i) => {
-//     const rect = str.getBoundingClientRect()
-
-//     const line = document.createElement("div")
-//     line.classList.add("string-line")
-
-//     line.style.top = rect.top - ukeRect.top + rect.height / 2 + "px"
-//     line.style.width = ukeRect.width + "px"
-
-//     overlay.appendChild(line)
-//   })
-// }
 //highlights fret when note is pressed on keyboard
 function highlightFret(rowIndex, noteIndex) {
   const fret = buttonGrid[rowIndex][noteIndex - 1]
@@ -379,7 +357,56 @@ function highlightFret(rowIndex, noteIndex) {
 
   fret.classList.add("active-fret")
 }
+function updateChordDiagram() {
+  const diagram = document.getElementById("chordDiagram")
 
+  // clear old markers
+  diagram.querySelectorAll(".cd-dot, .cd-open").forEach((el) => el.remove())
+
+  const fretSpacing = 100 / 8 // 8 visible frets
+
+  for (let rowIndex = 0; rowIndex < keyRows.length; rowIndex++) {
+    const row = keyRows[rowIndex]
+
+    for (let key of Object.keys(activeKeys)) {
+      const idx = row.indexOf(key)
+      if (idx === -1) continue
+
+      const noteIndex = idx === 0 ? 0 : windowStart + idx
+
+      const stringTop = [10, 35, 60, 85][rowIndex]
+
+      // OPEN STRING
+      if (noteIndex === 0) {
+        const open = document.createElement("div")
+        open.classList.add("cd-open")
+
+        const stringY = [10, 35, 60, 85][rowIndex]
+
+        open.style.top = `${stringY}%`
+        open.textContent = key.toUpperCase()
+
+        diagram.appendChild(open)
+        continue
+      }
+
+      // windowed fret position
+      const fret = noteIndex - windowStart - 1
+
+      if (fret < 0 || fret >= 8) continue
+
+      const dot = document.createElement("div")
+      dot.classList.add("cd-dot")
+
+      dot.style.left = `${(fret + 0.5) * fretSpacing}%`
+      dot.style.top = `${stringTop}%`
+
+      dot.textContent = key.toUpperCase()
+
+      diagram.appendChild(dot)
+    }
+  }
+}
 function handleKeyPress(event) {
   const key = event.key.toLowerCase()
 
@@ -408,6 +435,7 @@ function handleKeyPress(event) {
       vibrateString(rowIndex)
     }
   }
+  updateChordDiagram()
 }
 function vibrateString(rowIndex) {
   const stringRow = ukuleleDiv.children[rowIndex]
@@ -473,6 +501,7 @@ document.addEventListener("keyup", (event) => {
 
     //highlightFret(rowIndex, maxIndex)
   }
+  updateChordDiagram()
 })
 let isDragging = false //tracks whether user is currently dragging mouse
 let startX = 0 //stores x position where drag started
@@ -498,8 +527,6 @@ document.querySelectorAll(".body-string").forEach((el) => {
 document.addEventListener("mouseup", () => {
   isDragging = false
 }) //listens for when mouse is released
-
-//window.addEventListener("resize", drawContinuousStrings)
 
 document.addEventListener("mousemove", (e) => {
   if (!isDragging) return //only proceeds if user is currently dragging

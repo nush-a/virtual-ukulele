@@ -7,19 +7,35 @@
   </head>
   <body>
     <div id="loadingScreen">
-  Loading samples...
-  <div id="progressText">0%</div>
-</div>
-<div id="ukuleleApp" style="display:none">
-    <h1>Virtual Low G Ukulele</h1>
-    <h2>
-      How to play: the four rows of your keyboard are the four ukulele strings.
-      1, Q, A, and Z are your open strings. Move the window to play more notes.
-      You can also click. Press the toggle button to hide/show note names for
-      each fret.
-    </h2>
-    <button id="toggleLabels">Toggle Note Names</button>
+      Loading samples...
+      <div id="progressText">0%</div>
+    </div>
+    <div id="ukuleleApp" style="display: none">
+      <h1>Virtual Low G Ukulele</h1>
+      <h2>
+        How to play: the four rows of your keyboard are the four ukulele
+        strings. 1, Q, A, and Z are your open strings. Move the window to play
+        more notes. You can also click. Press the toggle button to hide/show
+        note names for each fret.
+      </h2>
+      <button id="toggleLabels">Toggle Note Names</button>
+      <div id="chordDiagram">
+        <div class="cd-grid"> <!-- strings -->
+    <div class="cd-string-line"></div>
+    <div class="cd-string-line"></div>
+    <div class="cd-string-line"></div>
+    <div class="cd-string-line"></div>
 
+    <!-- frets -->
+    <div class="cd-fret-line"></div>
+    <div class="cd-fret-line"></div>
+    <div class="cd-fret-line"></div>
+    <div class="cd-fret-line"></div>
+    <div class="cd-fret-line"></div>
+    <div class="cd-fret-line"></div>
+    <div class="cd-fret-line"></div>
+    <div class="cd-fret-line"></div></div>
+      </div>
     <div class="ukulele">
       <div id="ukulele" class="fretboard hide-labels"></div>
       <div id="uke-body" class="ukulele-body">
@@ -28,6 +44,7 @@
         <div class="body-string" data-row="2"></div>
         <div class="body-string" data-row="3"></div>
       </div>
+      <div id="stringOverlay"></div>
     </div>
     <div id="windowOverlay"></div>
 
