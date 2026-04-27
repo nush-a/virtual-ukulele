@@ -120,9 +120,12 @@ let windowStart = 0
 const windowSize = 9
 const activeKeys = {} //stores wheter a key is currently pressed or not
 const buttonGrid = [] // 2D array to store all buttons
+const activeSources = {} // {stringlabel: {sources, gain}}
 const ukuleleDiv = document.getElementById("ukulele")
 //button toggle for frets labels
 const toggleBtn = document.getElementById("toggleLabels")
+const lastKeyPerRow = {}
+const keyTime = {}
 
 for (let rowIndex = 0; rowIndex < ukuleleData.length; rowIndex++) {
   const stringData = ukuleleData[rowIndex] //loops through each uke string
@@ -171,31 +174,70 @@ for (let rowIndex = 0; rowIndex < ukuleleData.length; rowIndex++) {
   ukuleleDiv.appendChild(stringRow) //adds the whole row to the page visibly
 }
 
+//window overlay
 const overlay = document.createElement("div")
 overlay.style.position = "absolute"
 overlay.style.border = "2px solid black"
 overlay.style.pointerEvents = "none" // so mouse events register
 overlay.style.height = "30px" // adjust to cover buttons
-overlay.style.top = ukuleleDiv.offsetTop + "px"
+overlay.style.top = ukuleleDiv.offsetTop + "20px"
 overlay.style.backgroundColor = "rgba(219, 241, 243, 0.42)" // slight tint for visibility
 document.body.appendChild(overlay)
+
+function getNoteIndex(rowIndex, idx) {
+  // root column always maps to fret 0
+  if (idx === 0) return 0
+
+  // everything else is windowed and shifted
+  return windowStart + idx
+}
 
 function playNote(stringLabel, note, technique) {
   // resume AudioContext if suspended
   if (audioCtx.state === "suspended") {
     audioCtx.resume()
   }
+  //reads file paths of samples
   const filePath = `samples/${stringLabel}_${note}_${technique}.mp3`
-
-  // Fetch the audio file
+  //fetch the audio file
   fetch(filePath)
-    .then((response) => response.arrayBuffer()) // get raw data
-    .then((arrayBuffer) => audioCtx.decodeAudioData(arrayBuffer)) // decode MP3 into audio buffer
+    .then((r) => r.arrayBuffer()) // get raw data
+    .then((buffer) => audioCtx.decodeAudioData(buffer)) // decode MP3 into audio buffer
     .then((audioBuffer) => {
-      const source = audioCtx.createBufferSource() // create a playback source
+      const now = audioCtx.currentTime
+
+      // fade out previous note on this string
+      if (activeSources[stringLabel]) {
+        const { source, gain } = activeSources[stringLabel]
+
+        try {
+          gain.gain.cancelScheduledValues(now)
+          gain.gain.setValueAtTime(gain.gain.value, now)
+          gain.gain.linearRampToValueAtTime(0, now + 0.4)
+
+          //source.stop(now + 0.02)
+          source.stop(now + 0.4)
+        } catch (e) {}
+      }
+
+      // create new source + gain
+      const source = audioCtx.createBufferSource()
+      const gainNode = audioCtx.createGain()
+
       source.buffer = audioBuffer
-      source.connect(audioCtx.destination) // connect to speakers
-      source.start() // play immediately
+
+      // start at full volume
+      gainNode.gain.setValueAtTime(1, now)
+
+      source.connect(gainNode)
+      gainNode.connect(audioCtx.destination)
+
+      source.start()
+      // store this as the current active source for the string
+      activeSources[stringLabel] = {
+        source,
+        gain: gainNode,
+      }
     })
     .catch((err) => console.error("Error loading audio:", err))
 }
@@ -215,7 +257,7 @@ function updateOverlay() {
 
 //highlights fret when note is pressed on keyboard
 function highlightFret(rowIndex, noteIndex) {
-  const fret = buttonGrid[rowIndex][noteIndex]
+  const fret = buttonGrid[rowIndex][noteIndex - 1]
 
   if (!fret) return
 
@@ -225,34 +267,32 @@ function highlightFret(rowIndex, noteIndex) {
 function handleKeyPress(event) {
   const key = event.key.toLowerCase()
 
-  if (activeKeys[key]) return // prevents repeat spam while holding
-
+  if (activeKeys[key]) return
   activeKeys[key] = true
 
+  keyTime[key] = performance.now()
+
   for (let rowIndex = 0; rowIndex < keyRows.length; rowIndex++) {
-    //Loops through each keyboard row (4 total).
-    const keyIndex = keyRows[rowIndex].indexOf(key) //Looks for the pressed key inside the current row.
+    const row = keyRows[rowIndex]
+    const idx = row.indexOf(key)
 
-    if (keyIndex !== -1) {
-      const stringData = ukuleleData[rowIndex] //Matches the keyboard row to a ukulele string
+    if (idx === -1) continue
 
-      const visibleNotes = stringData.notes.slice(
-        windowStart,
-        windowStart + windowSize,
-      )
+    // update last pressed key for this row
+    lastKeyPerRow[rowIndex] = idx
 
-      const note = visibleNotes[keyIndex]
+    const stringData = ukuleleData[rowIndex]
 
-      if (note) {
-        const actualIndex = windowStart + keyIndex
-        playNote(stringData.string, note, stringData.technique)
-        highlightFret(rowIndex, actualIndex - 1)
-        vibrateString(rowIndex)
-      }
+    const noteIndex = getNoteIndex(rowIndex, idx)
+    const note = stringData.notes[noteIndex]
+
+    if (note) {
+      playNote(stringData.string, note, stringData.technique)
+      highlightFret(rowIndex, noteIndex)
+      vibrateString(rowIndex)
     }
   }
 }
-
 function vibrateString(rowIndex) {
   const stringRow = ukuleleDiv.children[rowIndex]
 
@@ -272,26 +312,52 @@ toggleBtn.addEventListener("click", () => {
 
 document.addEventListener("keydown", handleKeyPress) //Adds a global listener for keyboard input.
 
+//global listener for keyup
 document.addEventListener("keyup", (event) => {
-  //listener for key up
-  const key = event.key.toLowerCase()
-  activeKeys[key] = false
+  const key = event.key.toLowerCase() //normalizes to lower case
+  delete activeKeys[key] //removes this key from the current set of pressed keys
 
-  //this block converts: keyboard key to position in visible window to real fret to actual UI element
   for (let rowIndex = 0; rowIndex < keyRows.length; rowIndex++) {
-    const keyIndex = keyRows[rowIndex].indexOf(key)
+    //iterates through each keyboard row
+    const row = keyRows[rowIndex] //gets the array of keys fo thsi specific row
 
-    if (keyIndex !== -1) {
-      const actualIndex = windowStart + keyIndex
-      const fret = buttonGrid[rowIndex][actualIndex - 1]
+    // find remaining active keys in this row
+    //all currently held keys 0-> convert those held keys into its windex ithin this row -> returns index of key -> removes keys not in this row
+    const activeIndices = Object.keys(activeKeys)
+      .map((k) => row.indexOf(k))
+      .filter((i) => i !== -1)
+    const stringLabel = ukuleleData[rowIndex].string //findswhich ukulele string this row corresponds to
+    const active = activeSources[stringLabel] //gets currently playing audio for this string
 
-      if (fret) {
-        fret.classList.remove("active-fret")
-      }
+    // clear all highlights for this row
+    for (let i = 0; i < buttonGrid[rowIndex].length; i++) {
+      buttonGrid[rowIndex][i]?.classList.remove("active-fret")
     }
+
+    // if no keys left → fade out current note
+    if (activeIndices.length === 0) {
+      //checks that keys arent still held down in this row
+      if (active) {
+        //checks if a note is currently playing after the keyup
+        const now = audioCtx.currentTime //gets current audio time
+
+        active.gain.gain.cancelScheduledValues(now) //clears prev vol auomation
+        active.gain.gain.setValueAtTime(active.gain.gain.value, now) //locks gain at current volume
+        active.gain.gain.linearRampToValueAtTime(0, now + 0.4) //ramps volume
+
+        active.source.stop(now + 0.4) //stops playback at end of fade
+
+        delete activeSources[stringLabel] //delete this note from active tracking
+      }
+      continue
+    }
+
+    // otherwise, keep highest (rightmost) key active
+    const maxIndex = Math.max(...activeIndices)
+
+    //highlightFret(rowIndex, maxIndex)
   }
 })
-
 let isDragging = false //tracks whether user is currently dragging mouse
 let startX = 0 //stores x position where drag started
 //test for git push

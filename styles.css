@@ -4,9 +4,11 @@ body {
 
 /* Fretboard container */
 .fretboard {
-  background-image: url("wood-grain.jpg");
+  /* background-image: url("wood-grain.jpg");*/
   background-size: cover;
   background-position: center;
+  background: #38180e;
+
   padding: 15px;
   display: inline-block;
   position: relative;
@@ -126,8 +128,8 @@ body {
 }
 .ukulele-body {
   background-image: url("uke-body.png");
-  background-size: 100% 100%;
   background-repeat: no-repeat;
+  background-size: 100% 100%;
   width: 450px;
   height: 520px; /* 4 strings × 40px */
   position: relative;
