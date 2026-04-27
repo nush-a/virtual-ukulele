@@ -190,7 +190,9 @@ body {
 }
 .cd-grid {
   position: relative;
+  border: #000000 2px;
   width: 100%;
+  border-style: ridge;
   height: 100%;
 }
 
